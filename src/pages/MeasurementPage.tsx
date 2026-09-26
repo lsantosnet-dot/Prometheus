@@ -1,8 +1,9 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { AddAPhoto, Delete, Save } from '@mui/icons-material'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PageHeading } from '../components/Ui'
+import { useFormSubmit } from '../hooks/useFormSubmit'
 import { createMeasurement } from '../services/maintenanceService'
 import { prepareMeasurementPhoto, type PreparedMeasurementPhoto } from '../services/imageService'
 
@@ -50,14 +51,13 @@ export function MeasurementPage() {
     setPreviewUrl(null)
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault()
+  const { onSubmit, saving, error } = useFormSubmit(async () => {
     await createMeasurement({ ...form, workOrderId, currentValue: Number(form.currentValue), photo: photo ?? undefined })
-    navigate(`/work-orders/${workOrderId}`)
-  }
+    navigate(`/work-orders/${workOrderId}`, { replace: true })
+  })
 
   return (
-    <form onSubmit={submit}><PageHeading title="Record Measurement" subtitle="Stored locally until synchronization" /><Stack spacing={2}>
+    <form onSubmit={onSubmit}><PageHeading title="Record Measurement" subtitle="Stored locally until synchronization" /><Stack spacing={2}>
       <TextField label="Measurement Point" value={form.measurementPoint} onChange={(event) => set('measurementPoint', event.target.value)} required />
       <TextField label="Current Value" type="number" value={form.currentValue} onChange={(event) => set('currentValue', event.target.value)} slotProps={{ htmlInput: { step: 'any' } }} required />
       <TextField label="Unit" value={form.unit} onChange={(event) => set('unit', event.target.value)} required />
@@ -74,7 +74,8 @@ export function MeasurementPage() {
         {photo && <Typography variant="caption" color="text.secondary">JPEG · {photo.width}x{photo.height} · {Math.ceil(photo.size / 1024)} KB</Typography>}
       </Box>
       {photoError && <Alert severity="error">{photoError}</Alert>}
-      <Button type="submit" variant="contained" startIcon={<Save />} disabled={processingPhoto}>Save Offline</Button>
+      {error && <Alert severity="error">{error}</Alert>}
+      <Button type="submit" variant="contained" startIcon={<Save />} disabled={processingPhoto || saving}>{saving ? 'Saving...' : 'Save Offline'}</Button>
     </Stack></form>
   )
 }

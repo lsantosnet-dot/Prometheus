@@ -3,9 +3,9 @@ import { AssignmentTurnedIn, PhotoCamera, PlayArrow, Speed } from '@mui/icons-ma
 import { Box, Button, Card, CardContent, Divider, Stack, Typography } from '@mui/material'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate, useParams } from 'react-router-dom'
-import { PageHeading, PriorityChip, StatusChip } from '../components/Ui'
+import { DeleteButton, PageHeading, PriorityChip, StatusChip } from '../components/Ui'
 import { db } from '../db/database'
-import { setWorkOrderStatus } from '../services/maintenanceService'
+import { deleteMeasurement, deleteWorkOrder, setWorkOrderStatus } from '../services/maintenanceService'
 import type { MeasurementPhoto } from '../domain/models'
 
 function MeasurementPhotoPreview({ photo }: { photo: MeasurementPhoto }) {
@@ -34,12 +34,14 @@ export function WorkOrderDetailsPage() {
   const field = (label: string, value: string) => <Box><Typography variant="caption" color="text.secondary">{label}</Typography><Typography sx={{ fontWeight: 600 }}>{value}</Typography></Box>
 
   return (
-    <><PageHeading title={order.number} subtitle={order.description} /><Stack direction="row" sx={{ gap: 1, mb: 2 }}><StatusChip status={order.status} /><PriorityChip priority={order.priority} /></Stack>
+    <><Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}><Box sx={{ flex: 1, minWidth: 0 }}><PageHeading title={order.number} subtitle={order.description} /></Box>
+        <DeleteButton title="Delete work order" message={`Delete ${order.number} and all of its measurements and photos? This removes it from this device only; data already sent to the server is kept.`} onConfirm={async () => { await deleteWorkOrder(order.id); navigate('/work-orders', { replace: true }) }} /></Box><Stack direction="row" sx={{ gap: 1, mb: 2 }}><StatusChip status={order.status} /><PriorityChip priority={order.priority} /></Stack>
       <Card><CardContent sx={{ display: 'grid', gap: 1.5 }}>{field('Equipment', `${equipment?.code ?? ''} - ${equipment?.name ?? ''}`)}<Divider />{field('Functional Location', order.functionalLocation)}<Divider />{field('Planner Group', order.plannerGroup)}<Divider />{field('Work Center', order.workCenter)}</CardContent></Card>
       {measurements.length > 0 && <Box sx={{ mt: 2 }}><Typography variant="h2" sx={{ mb: 1 }}>Measurements</Typography><Stack spacing={1}>
         {measurements.map((measurement) => <Card key={measurement.id}><CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           {photoByMeasurement.get(measurement.id) ? <MeasurementPhotoPreview photo={photoByMeasurement.get(measurement.id)!} /> : <PhotoCamera color="disabled" />}
-          <Box sx={{ minWidth: 0 }}><Typography variant="h3">{measurement.measurementPoint}</Typography><Typography>{measurement.currentValue} {measurement.unit}</Typography>{measurement.comments && <Typography variant="body2" color="text.secondary">{measurement.comments}</Typography>}</Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}><Typography variant="h3">{measurement.measurementPoint}</Typography><Typography>{measurement.currentValue} {measurement.unit}</Typography>{measurement.comments && <Typography variant="body2" color="text.secondary">{measurement.comments}</Typography>}</Box>
+          <DeleteButton title="Delete measurement" message={`Delete measurement "${measurement.measurementPoint}" and its photo? This removes it from this device only; data already sent to the server is kept.`} onConfirm={() => deleteMeasurement(measurement.id)} />
         </CardContent></Card>)}
       </Stack></Box>}
       <Box sx={{ display: 'grid', gap: 1.25, mt: 2 }}>

@@ -1,5 +1,6 @@
 import { AppBar, BottomNavigation, BottomNavigationAction, Box, Container, Toolbar, Typography } from '@mui/material'
 import { Assignment, Home, Notifications, PrecisionManufacturing, Sync } from '@mui/icons-material'
+import { useEffect } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ConnectivityBadge } from './ConnectivityBadge'
 
@@ -13,6 +14,8 @@ const navigation = [
 export function AppShell() {
   const location = useLocation()
   const navigate = useNavigate()
+  // Each screen starts at the top; otherwise a long form's scroll position carries over to the next page.
+  useEffect(() => window.scrollTo(0, 0), [location.pathname])
   const selected = navigation.find((item) => item.path !== '/' && location.pathname.startsWith(item.path))?.path ?? '/'
 
   return (

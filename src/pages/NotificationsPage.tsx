@@ -2,8 +2,9 @@ import { Add, NotificationsActive } from '@mui/icons-material'
 import { Box, Card, CardContent, Fab, Stack, Typography } from '@mui/material'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
-import { PageHeading } from '../components/Ui'
+import { DeleteButton, PageHeading } from '../components/Ui'
 import { db } from '../db/database'
+import { deleteNotification } from '../services/maintenanceService'
 
 export function NotificationsPage() {
   const navigate = useNavigate()
@@ -17,7 +18,7 @@ export function NotificationsPage() {
     <>
       <PageHeading title="Notifications" subtitle={`${rows.length} locally available`} />
       <Stack spacing={1.25}>{rows.map((item) => (
-        <Card key={item.id}><CardContent sx={{ display: 'flex', gap: 1.5 }}><NotificationsActive color="warning" /><Box><Typography variant="h3">{item.title}</Typography><Typography color="text.secondary" variant="body2">{item.description}</Typography><Typography color="secondary" variant="caption">{item.equipment?.code} - {item.equipment?.name}</Typography></Box></CardContent></Card>
+        <Card key={item.id}><CardContent sx={{ display: 'flex', gap: 1.5 }}><NotificationsActive color="warning" /><Box sx={{ flex: 1, minWidth: 0 }}><Typography variant="h3">{item.title}</Typography><Typography color="text.secondary" variant="body2">{item.description}</Typography><Typography color="secondary" variant="caption">{item.equipment?.code} - {item.equipment?.name}</Typography></Box><Box sx={{ mt: -1, mr: -1 }}><DeleteButton title="Delete notification" message={`Delete "${item.title}"? This removes it from this device only; data already sent to the server is kept.`} onConfirm={() => deleteNotification(item.id)} /></Box></CardContent></Card>
       ))}</Stack>
       <Fab color="secondary" variant="extended" onClick={() => navigate('/notifications/new')} sx={{ position: 'fixed', right: 20, bottom: 84 }}><Add sx={{ mr: 1 }} />New Notification</Fab>
     </>

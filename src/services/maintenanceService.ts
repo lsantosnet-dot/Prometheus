@@ -161,6 +161,34 @@ export async function synchronizePending() {
   return counts
 }
 
+// Local-only deletes: records and their queue entries are removed from IndexedDB; nothing is sent to the API.
+
+export async function deleteMeasurement(id: string) {
+  await db.transaction('rw', [db.measurements, db.measurementPhotos, db.syncQueue], async () => {
+    await db.measurementPhotos.where('measurementId').equals(id).delete()
+    await db.syncQueue.where('entityId').equals(id).delete()
+    await db.measurements.delete(id)
+  })
+}
+
+/** Deletes the work order with its measurements, photos and pending queue entries. */
+export async function deleteWorkOrder(id: string) {
+  await db.transaction('rw', [db.workOrders, db.measurements, db.measurementPhotos, db.syncQueue], async () => {
+    const measurementIds = await db.measurements.where('workOrderId').equals(id).primaryKeys()
+    await db.measurementPhotos.where('measurementId').anyOf(measurementIds).delete()
+    await db.syncQueue.where('entityId').anyOf([id, ...measurementIds]).delete()
+    await db.measurements.bulkDelete(measurementIds)
+    await db.workOrders.delete(id)
+  })
+}
+
+export async function deleteNotification(id: string) {
+  await db.transaction('rw', [db.notifications, db.syncQueue], async () => {
+    await db.syncQueue.where('entityId').equals(id).delete()
+    await db.notifications.delete(id)
+  })
+}
+
 /** Downloads the equipment reference data and upserts it into the local store. */
 export async function downloadEquipment() {
   ensureOnline()
