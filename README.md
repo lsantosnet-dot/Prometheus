@@ -1,6 +1,6 @@
 # Vallourec Mobile Maintenance
 
-Mobile-first, offline-first maintenance Progressive Web App proof of concept. It simulates local SAP PM-style work management without authentication, SAP integration, APIs, or a backend.
+Mobile-first, offline-first maintenance Progressive Web App proof of concept. It simulates local SAP PM-style work management without authentication or SAP integration. Synchronization talks to the OutSystems `Maintenance` REST API (`Prometheus_Backend2`).
 
 ## Stack
 
@@ -43,11 +43,13 @@ The `vallourec-mobile-maintenance` IndexedDB database contains seven stores:
 | `measurements` | Measurements recorded against work orders |
 | `measurementPhotos` | Optimized JPEG blobs linked to measurements by `measurementId` |
 | `notifications` | Seeded and locally created maintenance notifications |
-| `syncQueue` | Pending and completed simulated synchronization operations |
+| `syncQueue` | Pending and completed synchronization operations |
 
 Initial equipment, three sample work orders, and one notification are seeded once. Seed data is considered synchronized. Every user-created work order, measurement, notification, and every work-order status update is saved locally with a queue entry in the same Dexie transaction. Optional measurement photos are resized to a maximum dimension of 1600 pixels, converted to JPEG at 82% quality, stored as IndexedDB blobs, and committed atomically with their measurement.
 
-The Synchronization screen makes no network request. It marks pending records and queue entries as synchronized locally and preserves queue history.
+The Synchronization screen sends pending queue entries to the API in creation order (`POST /workorders`, `POST /measurements` plus `POST /measurements/{id}/photo`, `POST /notifications`) and marks each one synchronized only after the server accepts it. It stops at the first failure; if there is no network or the API is unreachable (15 s timeout), it shows that synchronization is not possible and keeps the remaining entries pending. **Download Equipment** calls `GET /equipments` and upserts the result into the local `equipment` store.
+
+The API base URL defaults to `https://vallourec-dev.outsystemsenterprise.com/Prometheus_Backend2/rest/Maintenance` and can be overridden with `VITE_API_BASE_URL` in a `.env` file.
 
 ## Manual acceptance check
 
@@ -66,6 +68,6 @@ For responsive review, use representative 390x844 iPhone, 360x800 Android, and 7
 
 ## POC boundaries
 
-This iteration intentionally excludes SAP integration, Azure AD, backend services, APIs, credential validation, equipment management, remote photo upload, remote conflict resolution, server background synchronization, push notifications, telemetry, and deployment infrastructure.
+This iteration intentionally excludes SAP integration, Azure AD, credential validation, equipment management, remote conflict resolution, server background synchronization, push notifications, telemetry, and deployment infrastructure.
 
 Automated tests and their dependencies are deferred to the second iteration. The first iteration is validated with TypeScript production builds and the manual acceptance workflow above.

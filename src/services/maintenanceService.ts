@@ -1,5 +1,7 @@
 import { db } from '../db/database'
+import { apiRequest, ensureOnline, postJson } from './apiClient'
 import type {
+  Equipment,
   MaintenanceNotification,
   Measurement,
   MeasurementPhoto,
@@ -89,19 +91,88 @@ export async function createNotification(input: NewNotification) {
   })
 }
 
+async function currentUsername() {
+  return (await db.users.get('current-user'))?.username ?? ''
+}
+
+async function sendWorkOrder(id: string, createdBy: string) {
+  const order = await db.workOrders.get(id)
+  if (!order) return
+  const { synchronized: _, ...dto } = order
+  const result = await postJson<{ number?: string }>('/workorders', { ...dto, createdBy })
+  // The server may assign its own number; keep it locally unless another order already uses it.
+  const serverNumber = result?.number
+  const numberTaken = serverNumber && serverNumber !== order.number && (await db.workOrders.where('number').equals(serverNumber).count()) > 0
+  await db.workOrders.update(id, { synchronized: true, ...(serverNumber && !numberTaken ? { number: serverNumber } : {}) })
+}
+
+async function sendMeasurement(id: string, createdBy: string) {
+  const measurement = await db.measurements.get(id)
+  if (!measurement) return
+  // The API requires the parent work order to exist; the upsert is idempotent.
+  await sendWorkOrder(measurement.workOrderId, createdBy)
+  const { synchronized: _, ...dto } = measurement
+  await postJson('/measurements', { ...dto, createdBy })
+  const photo = await db.measurementPhotos.where('measurementId').equals(id).first()
+  if (photo) {
+    await apiRequest(`/measurements/${encodeURIComponent(id)}/photo`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': photo.mimeType,
+        'X-Photo-Id': photo.id,
+        'X-File-Name': photo.fileName,
+        'X-Width': String(photo.width),
+        'X-Height': String(photo.height),
+      },
+      body: photo.blob,
+    })
+  }
+  await db.measurements.update(id, { synchronized: true })
+}
+
+async function sendNotification(id: string, createdBy: string) {
+  const notification = await db.notifications.get(id)
+  if (!notification) return
+  const { synchronized: _, ...dto } = notification
+  await postJson('/notifications', { ...dto, createdBy })
+  await db.notifications.update(id, { synchronized: true })
+}
+
+const senders: Record<SyncEntityType, (id: string, createdBy: string) => Promise<void>> = {
+  workOrder: sendWorkOrder,
+  measurement: sendMeasurement,
+  notification: sendNotification,
+}
+
+/**
+ * Sends pending queue entries to the API in creation order. Stops at the first failure
+ * so later changes are never sent before earlier ones; already-sent entries stay synchronized.
+ */
 export async function synchronizePending() {
-  const entries = await db.syncQueue.where('status').equals('pending').toArray()
+  ensureOnline()
+  const entries = await db.syncQueue.where('status').equals('pending').sortBy('createdAt')
+  const createdBy = await currentUsername()
   const counts: Record<SyncEntityType, number> = { workOrder: 0, measurement: 0, notification: 0 }
-  await db.transaction('rw', [db.workOrders, db.measurements, db.notifications, db.syncQueue], async () => {
-    for (const entry of entries) {
-      counts[entry.entityType] += 1
-      if (entry.entityType === 'workOrder') await db.workOrders.update(entry.entityId, { synchronized: true })
-      if (entry.entityType === 'measurement') await db.measurements.update(entry.entityId, { synchronized: true })
-      if (entry.entityType === 'notification') await db.notifications.update(entry.entityId, { synchronized: true })
-      await db.syncQueue.update(entry.id, { status: 'synchronized', synchronizedAt: now() })
+  for (const entry of entries) {
+    await senders[entry.entityType](entry.entityId, createdBy)
+    await db.syncQueue.update(entry.id, { status: 'synchronized', synchronizedAt: now() })
+    counts[entry.entityType] += 1
+  }
+  return counts
+}
+
+/** Downloads the equipment reference data and upserts it into the local store. */
+export async function downloadEquipment() {
+  ensureOnline()
+  const items = await apiRequest<Equipment[]>('/equipments')
+  await db.transaction('rw', db.equipment, async () => {
+    for (const item of items) {
+      // `code` is unique locally: drop any local record that holds the same code under another id.
+      await db.equipment.where('code').equals(item.code).and((existing) => existing.id !== item.id).delete()
+      await db.equipment.put(item)
     }
   })
-  return counts
+  return items.length
 }
 
 export const priorities: Priority[] = ['Low', 'Medium', 'High']
