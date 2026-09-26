@@ -8,9 +8,6 @@ import '@fontsource/barlow/700.css'
 import './index.css'
 import { AppRouter } from './app/router'
 import { theme } from './app/theme'
-import { downloadEquipmentIfEmpty } from './services/maintenanceService'
-
-void downloadEquipmentIfEmpty()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

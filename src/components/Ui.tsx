@@ -21,7 +21,7 @@ export function PriorityChip({ priority }: { priority: Priority }) {
 type EquipmentSelectProps = Omit<TextFieldProps, 'select' | 'children'> & { equipment: Equipment[] }
 
 export function EquipmentSelect({ equipment, ...props }: EquipmentSelectProps) {
-  const helperText = equipment.length === 0 ? 'No equipment on this device. Use Download Equipment on the Sync screen.' : props.helperText
+  const helperText = equipment.length === 0 ? 'No equipment on this device. Tap Synchronize on the Sync screen to download it.' : props.helperText
   return <TextField select label="Equipment" required fullWidth {...props} helperText={helperText}>{equipment.map((item) => <MenuItem key={item.id} value={item.id}>{item.code} - {item.name}</MenuItem>)}</TextField>
 }
 

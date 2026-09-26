@@ -220,10 +220,4 @@ export async function downloadEquipment() {
   return items.length
 }
 
-/** Fetches equipment on startup when none is stored yet; failures are left for the Sync screen. */
-export async function downloadEquipmentIfEmpty() {
-  if (!navigator.onLine || (await db.equipment.count()) > 0) return
-  await downloadEquipment().catch(() => undefined)
-}
-
 export const priorities: Priority[] = ['Low', 'Medium', 'High']
