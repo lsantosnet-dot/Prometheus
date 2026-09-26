@@ -13,10 +13,20 @@ export class ApiUnavailableError extends Error {
 export class ApiRequestError extends Error {
   readonly status: number
 
-  constructor(status: number, path: string) {
-    super(`The server rejected the request (${status} on ${path}).`)
+  constructor(status: number, path: string, detail?: string) {
+    super(`The server rejected the request (${status} on ${path})${detail ? `: ${detail}` : '.'}`)
     this.name = 'ApiRequestError'
     this.status = status
+  }
+}
+
+/** Extracts the OutSystems error text from a body like {"Errors":["..."],"StatusCode":500}. */
+function errorDetail(body: string) {
+  try {
+    const errors = (JSON.parse(body) as { Errors?: unknown }).Errors
+    return Array.isArray(errors) ? errors.join(' ') : undefined
+  } catch {
+    return undefined
   }
 }
 
@@ -31,7 +41,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   } catch {
     throw new ApiUnavailableError()
   }
-  if (!response.ok) throw new ApiRequestError(response.status, path)
+  if (!response.ok) throw new ApiRequestError(response.status, path, errorDetail(await response.text().catch(() => '')))
   const text = await response.text()
   return (text ? JSON.parse(text) : undefined) as T
 }
@@ -49,7 +59,7 @@ export function uploadBinary(path: string, body: Blob, headers: Record<string, s
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress?.(event.loaded / event.total)
     }
-    xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new ApiRequestError(xhr.status, path))
+    xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new ApiRequestError(xhr.status, path, errorDetail(xhr.responseText)))
     xhr.onerror = () => reject(new ApiUnavailableError())
     xhr.ontimeout = () => reject(new ApiUnavailableError('Unable to synchronize: the photo upload timed out.'))
     xhr.send(body)

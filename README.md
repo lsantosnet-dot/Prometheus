@@ -45,7 +45,7 @@ The `vallourec-mobile-maintenance` IndexedDB database contains seven stores:
 | `notifications` | Seeded and locally created maintenance notifications |
 | `syncQueue` | Pending and completed synchronization operations |
 
-Initial equipment, three sample work orders, and one notification are seeded once. Seed data is considered synchronized. Every user-created work order, measurement, notification, and every work-order status update is saved locally with a queue entry in the same Dexie transaction. Optional measurement photos are resized to a maximum dimension of 1600 pixels, converted to JPEG at 82% quality, stored as IndexedDB blobs, and committed atomically with their measurement.
+No sample data is seeded. Equipment is backend-owned: it is downloaded automatically on startup when the device has none and the network is available, and **Download Equipment** replaces the local list with the server list. Every user-created work order, measurement, notification, and every work-order status update is saved locally with a queue entry in the same Dexie transaction. Optional measurement photos are resized to a maximum dimension of 1600 pixels, converted to JPEG at 82% quality, stored as IndexedDB blobs, and committed atomically with their measurement.
 
 The Synchronization screen sends pending queue entries to the API in creation order (`POST /workorders`, `POST /measurements` plus `POST /measurements/{id}/photo`, `POST /notifications`) and marks each one synchronized only after the server accepts it. It stops at the first failure; if there is no network or the API is unreachable (15 s timeout), it shows that synchronization is not possible and keeps the remaining entries pending. **Download Equipment** calls `GET /equipments` and upserts the result into the local `equipment` store.
 
@@ -55,8 +55,8 @@ The API base URL defaults to `https://vallourec-dev.outsystemsenterprise.com/Pro
 
 1. Sign in with any username and password.
 2. Confirm `ONLINE` or `OFFLINE` is visible on every screen.
-3. Search and filter the seeded work orders.
-4. Create a work order using a seeded equipment record.
+3. Download equipment on the Synchronization screen if the list is empty.
+4. Create a work order using a downloaded equipment record, then search and filter work orders.
 5. Open any work order and use Start Work or Complete in any order.
 6. Record a measurement with a camera or file-system photo and create a notification.
 7. Refresh the browser and confirm all created data remains available.

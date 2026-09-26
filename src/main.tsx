@@ -8,9 +8,9 @@ import '@fontsource/barlow/700.css'
 import './index.css'
 import { AppRouter } from './app/router'
 import { theme } from './app/theme'
-import { seedDatabase } from './db/seed'
+import { downloadEquipmentIfEmpty } from './services/maintenanceService'
 
-await seedDatabase()
+void downloadEquipmentIfEmpty()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

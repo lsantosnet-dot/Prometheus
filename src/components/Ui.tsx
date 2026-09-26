@@ -21,7 +21,8 @@ export function PriorityChip({ priority }: { priority: Priority }) {
 type EquipmentSelectProps = Omit<TextFieldProps, 'select' | 'children'> & { equipment: Equipment[] }
 
 export function EquipmentSelect({ equipment, ...props }: EquipmentSelectProps) {
-  return <TextField select label="Equipment" required fullWidth {...props}>{equipment.map((item) => <MenuItem key={item.id} value={item.id}>{item.code} - {item.name}</MenuItem>)}</TextField>
+  const helperText = equipment.length === 0 ? 'No equipment on this device. Use Download Equipment on the Sync screen.' : props.helperText
+  return <TextField select label="Equipment" required fullWidth {...props} helperText={helperText}>{equipment.map((item) => <MenuItem key={item.id} value={item.id}>{item.code} - {item.name}</MenuItem>)}</TextField>
 }
 
 /** Trash icon that asks for confirmation before running a local delete. */

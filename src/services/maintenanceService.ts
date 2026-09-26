@@ -206,18 +206,24 @@ export async function deleteNotification(id: string) {
   })
 }
 
-/** Downloads the equipment reference data and upserts it into the local store. */
+/**
+ * Replaces the local equipment with the server list. Equipment is backend-owned reference data,
+ * and orders that point to equipment unknown to the server are rejected on synchronization.
+ */
 export async function downloadEquipment() {
   ensureOnline()
   const items = await apiRequest<Equipment[]>('/equipments')
   await db.transaction('rw', db.equipment, async () => {
-    for (const item of items) {
-      // `code` is unique locally: drop any local record that holds the same code under another id.
-      await db.equipment.where('code').equals(item.code).and((existing) => existing.id !== item.id).delete()
-      await db.equipment.put(item)
-    }
+    await db.equipment.clear()
+    await db.equipment.bulkAdd(items)
   })
   return items.length
+}
+
+/** Fetches equipment on startup when none is stored yet; failures are left for the Sync screen. */
+export async function downloadEquipmentIfEmpty() {
+  if (!navigator.onLine || (await db.equipment.count()) > 0) return
+  await downloadEquipment().catch(() => undefined)
 }
 
 export const priorities: Priority[] = ['Low', 'Medium', 'High']
