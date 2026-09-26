@@ -1,5 +1,5 @@
 import { db } from '../db/database'
-import { apiRequest, ensureOnline, postJson } from './apiClient'
+import { apiRequest, ensureOnline, postJson, uploadBinary } from './apiClient'
 import type {
   Equipment,
   MaintenanceNotification,
@@ -91,6 +91,18 @@ export async function createNotification(input: NewNotification) {
   })
 }
 
+type PhotoProgress = (fraction: number) => void
+
+export interface SyncProgress {
+  /** 1-based position of the entry being sent. */
+  current: number
+  total: number
+  entityType?: SyncEntityType
+  /** Upload progress (0..1) of the current measurement photo, when one is being sent. */
+  photoFraction?: number
+  percent: number
+}
+
 async function currentUsername() {
   return (await db.users.get('current-user'))?.username ?? ''
 }
@@ -106,7 +118,7 @@ async function sendWorkOrder(id: string, createdBy: string) {
   await db.workOrders.update(id, { synchronized: true, ...(serverNumber && !numberTaken ? { number: serverNumber } : {}) })
 }
 
-async function sendMeasurement(id: string, createdBy: string) {
+async function sendMeasurement(id: string, createdBy: string, onPhotoProgress?: PhotoProgress) {
   const measurement = await db.measurements.get(id)
   if (!measurement) return
   // The API requires the parent work order to exist; the upsert is idempotent.
@@ -115,17 +127,13 @@ async function sendMeasurement(id: string, createdBy: string) {
   await postJson('/measurements', { ...dto, createdBy })
   const photo = await db.measurementPhotos.where('measurementId').equals(id).first()
   if (photo) {
-    await apiRequest(`/measurements/${encodeURIComponent(id)}/photo`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': photo.mimeType,
-        'X-Photo-Id': photo.id,
-        'X-File-Name': photo.fileName,
-        'X-Width': String(photo.width),
-        'X-Height': String(photo.height),
-      },
-      body: photo.blob,
-    })
+    await uploadBinary(`/measurements/${encodeURIComponent(id)}/photo`, photo.blob, {
+      'Content-Type': photo.mimeType,
+      'X-Photo-Id': photo.id,
+      'X-File-Name': photo.fileName,
+      'X-Width': String(photo.width),
+      'X-Height': String(photo.height),
+    }, onPhotoProgress)
   }
   await db.measurements.update(id, { synchronized: true })
 }
@@ -138,7 +146,7 @@ async function sendNotification(id: string, createdBy: string) {
   await db.notifications.update(id, { synchronized: true })
 }
 
-const senders: Record<SyncEntityType, (id: string, createdBy: string) => Promise<void>> = {
+const senders: Record<SyncEntityType, (id: string, createdBy: string, onPhotoProgress?: PhotoProgress) => Promise<void>> = {
   workOrder: sendWorkOrder,
   measurement: sendMeasurement,
   notification: sendNotification,
@@ -148,16 +156,25 @@ const senders: Record<SyncEntityType, (id: string, createdBy: string) => Promise
  * Sends pending queue entries to the API in creation order. Stops at the first failure
  * so later changes are never sent before earlier ones; already-sent entries stay synchronized.
  */
-export async function synchronizePending() {
+export async function synchronizePending(onProgress?: (progress: SyncProgress) => void) {
   ensureOnline()
   const entries = await db.syncQueue.where('status').equals('pending').sortBy('createdAt')
   const createdBy = await currentUsername()
   const counts: Record<SyncEntityType, number> = { workOrder: 0, measurement: 0, notification: 0 }
-  for (const entry of entries) {
-    await senders[entry.entityType](entry.entityId, createdBy)
+  for (const [index, entry] of entries.entries()) {
+    const report = (photoFraction?: number) => onProgress?.({
+      current: index + 1,
+      total: entries.length,
+      entityType: entry.entityType,
+      photoFraction,
+      percent: Math.round(((index + (photoFraction ?? 0)) / entries.length) * 100),
+    })
+    report()
+    await senders[entry.entityType](entry.entityId, createdBy, report)
     await db.syncQueue.update(entry.id, { status: 'synchronized', synchronizedAt: now() })
     counts[entry.entityType] += 1
   }
+  onProgress?.({ current: entries.length, total: entries.length, percent: 100 })
   return counts
 }
 

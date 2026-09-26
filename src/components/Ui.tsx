@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DeleteOutlined } from '@mui/icons-material'
-import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, MenuItem, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, MenuItem, TextField, Typography } from '@mui/material'
 import type { TextFieldProps } from '@mui/material'
 import type { Equipment, Priority, WorkOrderStatus } from '../domain/models'
 
@@ -44,7 +44,7 @@ export function DeleteButton({ title, message, onConfirm }: { title: string; mes
       <IconButton aria-label={title} color="error" onClick={() => setOpen(true)}><DeleteOutlined /></IconButton>
       <Dialog open={open} onClose={() => !deleting && setOpen(false)}>
         <DialogTitle>{title}</DialogTitle>
-        <DialogContent><DialogContentText>{message}</DialogContentText></DialogContent>
+        <DialogContent><Alert severity="warning" sx={{ mb: 2 }}>Deletion only in the mobile. No sync to backend</Alert><DialogContentText>{message}</DialogContentText></DialogContent>
         <DialogActions><Button onClick={() => setOpen(false)} disabled={deleting}>Cancel</Button><Button color="error" variant="contained" onClick={confirm} disabled={deleting}>{deleting ? 'Deleting...' : 'Delete'}</Button></DialogActions>
       </Dialog>
     </>

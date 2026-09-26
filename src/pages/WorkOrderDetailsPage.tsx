@@ -35,13 +35,13 @@ export function WorkOrderDetailsPage() {
 
   return (
     <><Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}><Box sx={{ flex: 1, minWidth: 0 }}><PageHeading title={order.number} subtitle={order.description} /></Box>
-        <DeleteButton title="Delete work order" message={`Delete ${order.number} and all of its measurements and photos? This removes it from this device only; data already sent to the server is kept.`} onConfirm={async () => { await deleteWorkOrder(order.id); navigate('/work-orders', { replace: true }) }} /></Box><Stack direction="row" sx={{ gap: 1, mb: 2 }}><StatusChip status={order.status} /><PriorityChip priority={order.priority} /></Stack>
+        <DeleteButton title="Delete work order" message={`Delete ${order.number} and all of its measurements and photos?`} onConfirm={async () => { await deleteWorkOrder(order.id); navigate('/work-orders', { replace: true }) }} /></Box><Stack direction="row" sx={{ gap: 1, mb: 2 }}><StatusChip status={order.status} /><PriorityChip priority={order.priority} /></Stack>
       <Card><CardContent sx={{ display: 'grid', gap: 1.5 }}>{field('Equipment', `${equipment?.code ?? ''} - ${equipment?.name ?? ''}`)}<Divider />{field('Functional Location', order.functionalLocation)}<Divider />{field('Planner Group', order.plannerGroup)}<Divider />{field('Work Center', order.workCenter)}</CardContent></Card>
       {measurements.length > 0 && <Box sx={{ mt: 2 }}><Typography variant="h2" sx={{ mb: 1 }}>Measurements</Typography><Stack spacing={1}>
         {measurements.map((measurement) => <Card key={measurement.id}><CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           {photoByMeasurement.get(measurement.id) ? <MeasurementPhotoPreview photo={photoByMeasurement.get(measurement.id)!} /> : <PhotoCamera color="disabled" />}
           <Box sx={{ flex: 1, minWidth: 0 }}><Typography variant="h3">{measurement.measurementPoint}</Typography><Typography>{measurement.currentValue} {measurement.unit}</Typography>{measurement.comments && <Typography variant="body2" color="text.secondary">{measurement.comments}</Typography>}</Box>
-          <DeleteButton title="Delete measurement" message={`Delete measurement "${measurement.measurementPoint}" and its photo? This removes it from this device only; data already sent to the server is kept.`} onConfirm={() => deleteMeasurement(measurement.id)} />
+          <DeleteButton title="Delete measurement" message={`Delete measurement "${measurement.measurementPoint}" and its photo?`} onConfirm={() => deleteMeasurement(measurement.id)} />
         </CardContent></Card>)}
       </Stack></Box>}
       <Box sx={{ display: 'grid', gap: 1.25, mt: 2 }}>

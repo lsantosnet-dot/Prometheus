@@ -35,7 +35,7 @@ export function WorkOrdersPage() {
         {filtered.map((order) => (
           <Card key={order.id} sx={{ display: 'flex', alignItems: 'center' }}><CardActionArea sx={{ flex: 1, minWidth: 0 }} onClick={() => navigate(`/work-orders/${order.id}`)}><CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ flex: 1, minWidth: 0 }}><Typography variant="caption" color="secondary" sx={{ fontWeight: 700 }}>{order.number}</Typography><Typography variant="h3">{order.description}</Typography><Typography variant="body2" color="text.secondary">{order.equipment?.code} · {order.functionalLocation}</Typography><Stack direction="row" sx={{ gap: 1, mt: 1 }}><StatusChip status={order.status} /><PriorityChip priority={order.priority} /></Stack></Box><ChevronRight color="action" />
-          </CardContent></CardActionArea><Box sx={{ pr: 1 }}><DeleteButton title="Delete work order" message={`Delete ${order.number} and all of its measurements and photos? This removes it from this device only; data already sent to the server is kept.`} onConfirm={() => deleteWorkOrder(order.id)} /></Box></Card>
+          </CardContent></CardActionArea><Box sx={{ pr: 1 }}><DeleteButton title="Delete work order" message={`Delete ${order.number} and all of its measurements and photos?`} onConfirm={() => deleteWorkOrder(order.id)} /></Box></Card>
         ))}
         {filtered.length === 0 && <Typography color="text.secondary" sx={{ textAlign: 'center', py: 5 }}>No work orders match these filters.</Typography>}
       </Stack>

@@ -18,7 +18,7 @@ export function NotificationsPage() {
     <>
       <PageHeading title="Notifications" subtitle={`${rows.length} locally available`} />
       <Stack spacing={1.25}>{rows.map((item) => (
-        <Card key={item.id}><CardContent sx={{ display: 'flex', gap: 1.5 }}><NotificationsActive color="warning" /><Box sx={{ flex: 1, minWidth: 0 }}><Typography variant="h3">{item.title}</Typography><Typography color="text.secondary" variant="body2">{item.description}</Typography><Typography color="secondary" variant="caption">{item.equipment?.code} - {item.equipment?.name}</Typography></Box><Box sx={{ mt: -1, mr: -1 }}><DeleteButton title="Delete notification" message={`Delete "${item.title}"? This removes it from this device only; data already sent to the server is kept.`} onConfirm={() => deleteNotification(item.id)} /></Box></CardContent></Card>
+        <Card key={item.id}><CardContent sx={{ display: 'flex', gap: 1.5 }}><NotificationsActive color="warning" /><Box sx={{ flex: 1, minWidth: 0 }}><Typography variant="h3">{item.title}</Typography><Typography color="text.secondary" variant="body2">{item.description}</Typography><Typography color="secondary" variant="caption">{item.equipment?.code} - {item.equipment?.name}</Typography></Box><Box sx={{ mt: -1, mr: -1 }}><DeleteButton title="Delete notification" message={`Delete "${item.title}"?`} onConfirm={() => deleteNotification(item.id)} /></Box></CardContent></Card>
       ))}</Stack>
       <Fab color="secondary" variant="extended" onClick={() => navigate('/notifications/new')} sx={{ position: 'fixed', right: 20, bottom: 84 }}><Add sx={{ mr: 1 }} />New Notification</Fab>
     </>
