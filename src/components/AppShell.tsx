@@ -15,7 +15,9 @@ export function AppShell() {
   const location = useLocation()
   const navigate = useNavigate()
   // Each screen starts at the top; otherwise a long form's scroll position carries over to the next page.
-  useEffect(() => window.scrollTo(0, 0), [location.pathname])
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
   const selected = navigation.find((item) => item.path !== '/' && location.pathname.startsWith(item.path))?.path ?? '/'
 
   return (
